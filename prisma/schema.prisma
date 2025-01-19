@@ -23,15 +23,15 @@ model Users {
   createdAt        DateTime          @default(now())
   auth_provider    String
 
-  DonationRecords  DonationRecords[]
   NewsUpdates      NewsUpdates[]
-  Orders           Orders[]
   Role             Roles             @relation(fields: [role_id], references: [role_id])
 
-  // Add relations for created_by and modified_by in the Images model
   CreatedImages    Images[]          @relation("createdByRelation")
   ModifiedImages   Images[]          @relation("modifiedByRelation")
+
+  ManagedHallAvailability HallAvailability[] @relation("UserManagedAvailability")
 }
+
 
 model Images {
   image_id      Int       @id @default(autoincrement())
@@ -42,89 +42,34 @@ model Images {
   modified_by   Int?      // Optional relation to Users
   modified_at   DateTime  @updatedAt
 
-  // Relations to Users for created_by and modified_by
   createdBy     Users     @relation("createdByRelation", fields: [created_by], references: [user_id])
   modifiedBy    Users?    @relation("modifiedByRelation", fields: [modified_by], references: [user_id])
 }
 
-
-model Sevas {
-  seva_id             Int            @id @default(autoincrement())
+model Halls {
+  hall_id             Int            @id @default(autoincrement())
   name                String
   description         String
   name_kannada        String
   description_kannada String
   base_price          Decimal
-  OrderDetails        OrderDetails[]
+  available           Boolean        @default(true) // General availability status
 
-  // Define the relation to SevaForm with the relation name "sevaForms"
-  sevaForms           SevaForm[]     @relation("SevaForms")
+  hallForms           HallForm[]     @relation("HallForms")
+  hallAvailability    HallAvailability[]
 }
 
-model Orders {
-  order_id        Int              @id @default(autoincrement())
-  user_id         Int
-  order_date      DateTime
-  status          String
-  total_amount    Decimal
-  Acknowledgments Acknowledgments?
-  OrderDetails    OrderDetails[]
-  User            Users            @relation(fields: [user_id], references: [user_id])
-  Receipts        Receipts?
-}
+model HallAvailability {
+  id           Int      @id @default(autoincrement())
+  hall_id      Int
+  date         DateTime
+  reason       String?  // Reason for unavailability
+  is_booked    Boolean  @default(false) // Indicates if this is due to a booking or admin action
+  createdBy    Int?     // Admin user ID (if manually marked)
+  createdAt    DateTime @default(now())
 
-model OrderDetails {
-  order_detail_id Int     @id @default(autoincrement())
-  order_id        Int
-  seva_id         Int
-  quantity        Int
-  price           Decimal
-  Orders          Orders  @relation(fields: [order_id], references: [order_id])
-  Sevas           Sevas   @relation(fields: [seva_id], references: [seva_id])
-}
-
-model Receipts {
-  receipt_id          Int               @id @default(autoincrement())
-  order_id            Int               @unique
-  receipt_number      String
-  amount_paid         Decimal
-  payment_date        DateTime
-  payment_status      String
-  razorpay_payment_id String?
-  DonationRecords     DonationRecords[]
-  Payments            Payments[]
-  Orders              Orders            @relation(fields: [order_id], references: [order_id])
-}
-
-model Acknowledgments {
-  acknowledgment_id     Int      @id @default(autoincrement())
-  order_id              Int      @unique
-  acknowledgment_number String
-  acknowledged_date     DateTime
-  message               String?
-  Orders                Orders   @relation(fields: [order_id], references: [order_id])
-}
-
-model DonationRecords {
-  donation_record_id Int       @id @default(autoincrement())
-  user_id            Int
-  donation_amount    Decimal
-  donation_date      DateTime
-  certificate_number String
-  tax_deductible     Boolean
-  receipt_id         Int?
-  Receipts           Receipts? @relation(fields: [receipt_id], references: [receipt_id])
-  User               Users     @relation(fields: [user_id], references: [user_id])
-}
-
-model Payments {
-  payment_id          Int      @id @default(autoincrement())
-  receipt_id          Int
-  amount              Decimal
-  payment_date        DateTime
-  payment_status      String
-  razorpay_payment_id String?
-  Receipts            Receipts @relation(fields: [receipt_id], references: [receipt_id])
+  hall         Halls    @relation(fields: [hall_id], references: [hall_id])
+  createdByUser Users?  @relation("UserManagedAvailability", fields: [createdBy], references: [user_id])
 }
 
 model Contacts {
@@ -150,19 +95,16 @@ model NewsUpdates {
   User             Users?   @relation(fields: [created_by], references: [user_id])
 }
 
-model SevaForm {
+model HallForm {
   id                     Int       @id @default(autoincrement())
   name                   String
-  nakshathra             String
-  rashi                  String
-  gotra                  String?   // Optional field
+  reason                 String
   mobileNumber           String
   mobileNumberConfirmation String
   date                   DateTime
-  sevaId                 Int
+  hallId                 Int
 
   createdAt              DateTime @default(now())
 
-  // Define the relation to Sevas, using the same relation name
-  seva                   Sevas     @relation("SevaForms", fields: [sevaId], references: [seva_id])
+  hall                   Halls     @relation("HallForms", fields: [hallId], references: [hall_id])
 }

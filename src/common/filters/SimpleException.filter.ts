@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-@Catch() // This will catch all types of exceptions
+@Catch() // Catch all exceptions
 export class SimpleExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(SimpleExceptionFilter.name);
 
@@ -16,83 +16,53 @@ export class SimpleExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
+    const { status, message, type } = this.extractErrorDetails(exception);
+
+    this.logError(type, status, request, message, this.getStack(exception));
+
+    // Ensure status is always a number
+    response.status(Number(status)).json({
+      statusCode: Number(status), // Ensure numeric status code
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      method: request.method,
+      type,
+      message,
+    });
+  }
+
+  private extractErrorDetails(exception: unknown): {
+    status: number;
+    message: string | string[];
+    type: string;
+  } {
     if (exception instanceof HttpException) {
-      this.handleHttpException(exception, response, request);
-    } else {
-      this.handleNonHttpException(exception, response, request);
+      const status = exception.getStatus();
+      const response = exception.getResponse();
+      const message =
+        typeof response === 'string'
+          ? response
+          : (response as any).message || 'An unexpected error occurred';
+      return { status, message, type: 'HTTP Exception' };
     }
-  }
 
-  private handleHttpException(
-    exception: HttpException,
-    response: Response,
-    request: Request,
-  ) {
-    const status = exception.getStatus();
-    const errorMessage = this.getErrorMessage(exception);
-
-    this.logError(
-      'HTTP Exception',
-      status,
-      request,
-      errorMessage,
-      exception.stack,
-    );
-
-    this.sendErrorResponse(
-      response,
-      status,
-      request,
-      errorMessage,
-      'HTTP Exception',
-    );
-  }
-
-  private handleNonHttpException(
-    exception: unknown,
-    response: Response,
-    request: Request,
-  ) {
-    const status = this.getDynamicStatus(exception); // Get dynamic status
-    const errorMessage = this.getNonHttpErrorMessage(exception);
-
-    this.logError(
-      'Non-HTTP Exception',
-      status,
-      request,
-      errorMessage,
-      exception instanceof Error ? exception.stack : '',
-    );
-
-    this.sendErrorResponse(
-      response,
-      status,
-      request,
-      errorMessage,
-      'Non-HTTP Exception',
-    );
-  }
-
-  private getErrorMessage(exception: HttpException): string | string[] {
-    return Array.isArray(exception.getResponse()['message'])
-      ? exception.getResponse()['message']
-      : exception.message || 'Unexpected error occurred';
-  }
-
-  private getNonHttpErrorMessage(exception: unknown): string {
-    return exception instanceof Error
-      ? exception.message || 'Unexpected error occurred'
-      : 'An unknown error occurred';
-  }
-
-  private getDynamicStatus(exception: unknown): number {
     if (
-      exception instanceof Error &&
-      exception.message.includes('Corrupt JPEG data')
+      typeof exception === 'object' &&
+      exception !== null &&
+      'statusCode' in exception
     ) {
-      return 422; // Unprocessable Entity for corrupt JPEG data
+      return {
+        status: Number((exception as any).statusCode) || 500, // Convert statusCode to number
+        message: (exception as any).message || 'An unknown error occurred',
+        type: 'Custom Exception',
+      };
     }
-    return 500; // Default status for other non-HTTP exceptions
+
+    return {
+      status: 500,
+      message: exception instanceof Error ? exception.message : 'Unknown Error',
+      type: 'Non-HTTP Exception',
+    };
   }
 
   private logError(
@@ -113,23 +83,8 @@ export class SimpleExceptionFilter implements ExceptionFilter {
     );
   }
 
-  private sendErrorResponse(
-    response: Response,
-    status: number,
-    request: Request,
-    message: string | string[],
-    type: string,
-  ) {
-    const errorResponse = {
-      statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      method: request.method,
-      type,
-      message,
-    };
-
-    response.status(status).json(errorResponse);
+  private getStack(exception: unknown): string {
+    return exception instanceof Error ? exception.stack || '' : '';
   }
 
   private formatStackTrace(stack: string): string {

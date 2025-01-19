@@ -1,6 +1,6 @@
 import { IsOptional, IsString, IsNumber } from 'class-validator';
 
-export class UpdateSevaDto {
+export class UpdateHallDto {
   @IsOptional()
   @IsString()
   name?: string;
@@ -19,5 +19,5 @@ export class UpdateSevaDto {
 
   @IsOptional()
   @IsNumber({ allowNaN: false, allowInfinity: false }) // Using IsNumber for decimal validation
-  base_price: number;
+  base_price?: number;
 }

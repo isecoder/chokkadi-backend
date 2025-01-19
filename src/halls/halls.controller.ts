@@ -11,76 +11,77 @@ import {
   Session,
   BadRequestException,
 } from '@nestjs/common';
-import { SevasService } from './sevas.service';
-import { CreateSevaDto } from './dto/create-seva.dto';
-import { UpdateSevaDto } from './dto/update-seva.dto';
+import { HallsService } from './halls.service';
+import { CreateHallDto } from './dto/create-hall.dto';
+import { UpdateHallDto } from './dto/update-hall.dto';
 import { SessionAuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 
 // Apply SessionAuthGuard globally for the controller
-@Controller('sevas')
-export class SevasController {
-  constructor(private readonly sevasService: SevasService) {}
+@Controller('halls')
+export class HallsController {
+  constructor(private readonly hallsService: HallsService) {}
 
-  // Create a new Seva - Only admin users can create Sevas
+  // Create a new Hall - Only admin users can create Halls
   @UseGuards(SessionAuthGuard)
   @UseGuards(RolesGuard)
   @SetMetadata('role', 'Admin') // Require Admin role for this route
   @Post()
-  async createSeva(
-    @Body() createSevaDto: CreateSevaDto,
+  async createHall(
+    @Body() createHallDto: CreateHallDto,
     @Session() session: { user?: any },
   ) {
     if (!session.user) {
       throw new BadRequestException('User not authenticated');
     }
 
-    return this.sevasService.createSeva(createSevaDto);
+    return this.hallsService.createHall(createHallDto);
   }
 
-  // Get all Sevas - Any authenticated user can access this route
+  // Get all Halls - Any authenticated user can access this route
   @Get()
-  async getAllSevas() {
-    return this.sevasService.getAllSevas();
+  async getAllHalls() {
+    return this.hallsService.getAllHalls();
   }
 
-  // Get a Seva by ID - Any authenticated user can access this route
+  // Get a Hall by ID - Any authenticated user can access this route
   @Get(':id')
-  async getSevaById(@Param('id') id: number) {
-    return this.sevasService.getSevaById(id);
+  async getHallById(@Param('id') id: number) {
+    return this.hallsService.getHallById(id);
   }
 
-  // Update a Seva by ID - Only admin users can access this route
+  // Update a Hall by ID - Only admin users can access this route
   @UseGuards(SessionAuthGuard)
   @UseGuards(RolesGuard)
   @SetMetadata('role', 'Admin') // Require Admin role for this route
   @Patch(':id')
-  async updateSeva(
+  async updateHall(
     @Param('id') id: number,
-    @Body() updateSevaDto: UpdateSevaDto,
+    @Body() updateHallDto: UpdateHallDto,
     @Session() session: { user?: any },
   ) {
     if (!session.user) {
       throw new BadRequestException('User not authenticated');
     }
 
-    return this.sevasService.updateSeva(id, updateSevaDto);
+    return this.hallsService.updateHall(id, updateHallDto);
   }
 
-  // Delete a Seva by ID - Only admin users can access this route
+  // Delete a Hall by ID - Only admin users can access this route
   @UseGuards(SessionAuthGuard)
   @UseGuards(RolesGuard)
   @SetMetadata('role', 'Admin') // Require Admin role for this route
   @Delete(':id')
-  async deleteSeva(@Param('id') id: number) {
-    return this.sevasService.deleteSeva(id);
+  async deleteHall(@Param('id') id: number) {
+    return this.hallsService.deleteHall(id);
   }
 
+  // Delete all Halls - Only admin users can access this route
   @UseGuards(SessionAuthGuard)
   @UseGuards(RolesGuard)
   @SetMetadata('role', 'Admin') // Require Admin role for this route
   @Delete()
-  async deleteAllSevas() {
-    return this.sevasService.deleteAllSevas();
+  async deleteAllHalls() {
+    return this.hallsService.deleteAllHalls();
   }
 }

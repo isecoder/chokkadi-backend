@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
 
-export class CreateSevaDto {
+export class CreateHallDto {
   @IsNotEmpty()
   @IsString()
   name: string;

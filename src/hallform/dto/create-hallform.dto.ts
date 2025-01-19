@@ -1,31 +1,17 @@
-// src/seva-form/dto/create-seva-form.dto.ts
-import {
-  IsNotEmpty,
-  IsString,
-  IsNumber,
-  IsDateString,
-  ValidateIf,
-} from 'class-validator';
+// src/hall-form/dto/create-hall-form.dto.ts
+import { IsNotEmpty, IsString, IsNumber, IsDateString } from 'class-validator';
 import { IsInternationalPhone } from '../../common/decorators/IsInternationalPhone';
 import { MatchesField } from '../../common/decorators/MatchesField';
 import { ValidationMessages } from '../../common/constants/validation-message';
 
-export class CreateSevaFormDto {
+export class CreateHallFormDto {
   @IsNotEmpty()
   @IsString()
   name: string;
 
   @IsNotEmpty()
   @IsString()
-  nakshathra: string;
-
-  @IsNotEmpty()
-  @IsString()
-  rashi: string;
-
-  @ValidateIf((o) => o.gotra !== undefined)
-  @IsString()
-  gotra?: string;
+  reason: string;
 
   @IsNotEmpty()
   @IsInternationalPhone()
@@ -44,5 +30,5 @@ export class CreateSevaFormDto {
 
   @IsNotEmpty()
   @IsNumber()
-  sevaId: number;
+  hallId: number;
 }

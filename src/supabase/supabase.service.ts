@@ -1,5 +1,6 @@
 import {
   Injectable,
+  HttpException,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,7 +12,7 @@ import * as sharp from 'sharp';
 @Injectable()
 export class SupabaseService {
   private supabase;
-  private bucket = 'harihara_image';
+  private bucket = 'shrirama_image';
 
   constructor(private prisma: PrismaService) {
     this.supabase = createClient(
@@ -30,6 +31,8 @@ export class SupabaseService {
       .webp({ quality: 80 }) // Compress with quality of 80
       .toBuffer();
 
+    console.log('Compressed Buffer Size:', compressedBuffer.length); // Log compressed file details
+
     const { error } = await this.supabase.storage
       .from(this.bucket)
       .upload(filePath, compressedBuffer, {
@@ -38,8 +41,20 @@ export class SupabaseService {
       });
 
     if (error) {
-      throw new BadRequestException('Failed to upload image to Supabase');
+      //console.error('Supabase Upload Error:', error); // Log the error for debugging
+
+      // Throw an HttpException with status and message from Supabase
+      throw new HttpException(
+        {
+          statusCode: error.statusCode || 400,
+          message: error.message || 'Failed to upload image to Supabase',
+          details: error, // Attach full error details for debugging
+        },
+        error.statusCode || 400,
+      );
     }
+
+    console.log('File uploaded to Supabase:', filePath); // Log success details
 
     return this.prisma.images.create({
       data: {
@@ -100,7 +115,7 @@ export class SupabaseService {
     });
   }
 
-  async deleteImage(imageId: number, userId: number) {
+  async deleteImage(imageId: number) {
     const imageRecord = await this.prisma.images.findUnique({
       where: { image_id: imageId },
     });
