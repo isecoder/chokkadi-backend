@@ -12,6 +12,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { HallsService } from './halls.service';
+import { HallFormService } from 'src/hallform/hallform.service';
 import { CreateHallDto } from './dto/create-hall.dto';
 import { UpdateHallDto } from './dto/update-hall.dto';
 import { SessionAuthGuard } from '../auth/auth.guard';
@@ -20,7 +21,10 @@ import { RolesGuard } from '../auth/roles.guard';
 // Apply SessionAuthGuard globally for the controller
 @Controller('halls')
 export class HallsController {
-  constructor(private readonly hallsService: HallsService) {}
+  constructor(
+    private readonly hallsService: HallsService,
+    private readonly hallFormService: HallFormService,
+  ) {}
 
   // Create a new Hall - Only admin users can create Halls
   @UseGuards(SessionAuthGuard)
@@ -83,5 +87,26 @@ export class HallsController {
   @Delete()
   async deleteAllHalls() {
     return this.hallsService.deleteAllHalls();
+  }
+
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @SetMetadata('role', 'Admin')
+  @Post('disable')
+  async disableHallAvailability(
+    @Body()
+    disableDto: {
+      hallId: number;
+      date: string;
+      reason: string;
+      adminId: number;
+    },
+  ) {
+    const { hallId, date, reason, adminId } = disableDto;
+    return this.hallFormService.disableHallAvailability(
+      hallId,
+      date,
+      reason,
+      adminId,
+    );
   }
 }

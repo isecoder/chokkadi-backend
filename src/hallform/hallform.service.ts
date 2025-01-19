@@ -1,4 +1,3 @@
-// src/hall-form/hall-form.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -14,7 +13,7 @@ export class HallFormService extends BaseService {
     super();
   }
 
-  // Create a new Hall form entry
+  // Create a new Hall form entry with duplicate booking prevention
   async createHallForm(createHallFormDto: CreateHallFormDto) {
     const parsedDate = new Date(createHallFormDto.date);
 
@@ -34,6 +33,58 @@ export class HallFormService extends BaseService {
       );
     }
 
+    const startOfDay = new Date(parsedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(parsedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Check if the hall is already unavailable (booked or admin-disabled)
+    const existingAvailability = await this.prisma.hallAvailability.findFirst({
+      where: {
+        hall_id: createHallFormDto.hallId,
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        is_booked: true,
+      },
+    });
+
+    if (existingAvailability) {
+      throw new BadRequestException(
+        `The hall is already unavailable for the selected date.`,
+      );
+    }
+
+    // Check if the hall is disabled for the selected date
+    const disabledAvailability = await this.prisma.hallAvailability.findFirst({
+      where: {
+        hall_id: createHallFormDto.hallId,
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        is_booked: false,
+      },
+    });
+
+    if (disabledAvailability) {
+      throw new BadRequestException(
+        `The hall is disabled for the selected date due to: ${disabledAvailability.reason}`,
+      );
+    }
+
+    // Mark the hall as booked in the availability table
+    await this.prisma.hallAvailability.create({
+      data: {
+        hall_id: createHallFormDto.hallId,
+        date: startOfDay,
+        is_booked: true,
+        reason: `Booked by ${createHallFormDto.name}`,
+      },
+    });
+
+    // Create the hall form entry
     const createdHallForm = await this.prisma.hallForm.create({
       data: {
         ...createHallFormDto,
@@ -93,8 +144,61 @@ export class HallFormService extends BaseService {
       throw new NotFoundException(`Hall Form with ID ${id} not found`);
     }
 
+    // Remove the corresponding availability entry
+    await this.prisma.hallAvailability.deleteMany({
+      where: {
+        hall_id: booking.hallId,
+        date: booking.date,
+      },
+    });
+
     return this.prisma.hallForm.delete({
       where: { id },
+    });
+  }
+
+  // Admin function to disable hall availability for a specific date
+  async disableHallAvailability(
+    hallId: number,
+    date: string,
+    reason: string,
+    adminId: number,
+  ) {
+    const parsedDate = new Date(date);
+
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException(
+        'Invalid date format. Please use ISO format.',
+      );
+    }
+
+    const startOfDay = new Date(parsedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    // Check if the hall is already booked
+    const existingBooking = await this.prisma.hallAvailability.findFirst({
+      where: {
+        hall_id: hallId,
+        date: startOfDay,
+        is_booked: true,
+      },
+    });
+
+    if (existingBooking) {
+      throw new BadRequestException(
+        `The hall is already booked for the selected date.`,
+      );
+    }
+
+    // Mark the hall as unavailable
+    return this.prisma.hallAvailability.create({
+      data: {
+        hall_id: hallId,
+        date: startOfDay,
+        is_booked: false,
+        reason,
+        createdBy: adminId,
+      },
     });
   }
 }
