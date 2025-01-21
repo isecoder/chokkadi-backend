@@ -7,7 +7,6 @@ import {
 import { createClient } from '@supabase/supabase-js';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
-import * as sharp from 'sharp';
 
 @Injectable()
 export class SupabaseService {
@@ -26,10 +25,8 @@ export class SupabaseService {
     const filePath = `images/${fileName}`;
     const altText = this.generateAltText(fileName);
 
-    // Convert to .webp and compress using sharp
-    const compressedBuffer = await sharp(fileBuffer)
-      .webp({ quality: 80 }) // Compress with quality of 80
-      .toBuffer();
+    // Convert to .webp and compress using gm
+    const compressedBuffer = await this.compressImage(fileBuffer);
 
     console.log('Compressed Buffer Size:', compressedBuffer.length); // Log compressed file details
 
@@ -41,9 +38,6 @@ export class SupabaseService {
       });
 
     if (error) {
-      //console.error('Supabase Upload Error:', error); // Log the error for debugging
-
-      // Throw an HttpException with status and message from Supabase
       throw new HttpException(
         {
           statusCode: error.statusCode || 400,
@@ -71,10 +65,8 @@ export class SupabaseService {
     const filePath = `images/${fileName}`;
     const altText = this.generateAltText(fileName);
 
-    // Convert to .webp and compress using sharp
-    const compressedBuffer = await sharp(fileBuffer)
-      .webp({ quality: 80 }) // Compress with quality of 80
-      .toBuffer();
+    // Convert to .webp and compress using gm
+    const compressedBuffer = await this.compressImage(fileBuffer);
 
     const { error } = await this.supabase.storage
       .from(this.bucket)
@@ -95,6 +87,21 @@ export class SupabaseService {
         modified_by: userId,
         modified_at: new Date(),
       },
+    });
+  }
+
+  private async compressImage(fileBuffer: Buffer): Promise<Buffer> {
+    const gm = (await import('gm')).subClass({ imageMagick: true }); // Dynamically import gm
+    return new Promise((resolve, reject) => {
+      gm(fileBuffer)
+        .setFormat('webp') // Convert to webp
+        .quality(80) // Set quality to 80
+        .toBuffer((err, buffer) => {
+          if (err) {
+            return reject(new Error(`Image processing failed: ${err.message}`));
+          }
+          resolve(buffer);
+        });
     });
   }
 
