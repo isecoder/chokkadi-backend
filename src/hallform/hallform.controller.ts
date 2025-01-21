@@ -1,4 +1,3 @@
-// src/hall-form/hall-form.controller.ts
 import {
   Controller,
   Post,
@@ -18,23 +17,35 @@ import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('hallforms')
 export class HallFormController {
-  constructor(private readonly hallFormService: HallFormService) {}
+  private otpStore: Map<string, { otp: string; isVerified: boolean }>;
 
-  // Save the hall form details
+  constructor(private readonly hallFormService: HallFormService) {
+    this.otpStore = new Map(); // Initialize the OTP store
+  }
+
+  // Submit Hall Form
   @Post()
-  async createHallForm(@Body() createHallFormDto: CreateHallFormDto) {
-    // Validate that mobile number and confirmation match
-    if (
-      createHallFormDto.mobileNumber !==
-      createHallFormDto.mobileNumberConfirmation
-    ) {
-      throw new BadRequestException(
-        'Mobile number and confirmation do not match',
-      );
+  async submitHallForm(
+    @Body() body: { mobileNumber: string; formDetails: CreateHallFormDto },
+  ) {
+    const { mobileNumber, formDetails } = body;
+
+    if (!mobileNumber) {
+      throw new BadRequestException('Mobile number is required');
     }
 
-    const result = await this.hallFormService.createHallForm(createHallFormDto);
-    return result;
+    const otpEntry = this.otpStore.get(mobileNumber);
+    console.log('OTP Store:', this.otpStore);
+    if (!otpEntry || !otpEntry.isVerified) {
+      throw new BadRequestException('Mobile number is not verified');
+    }
+
+    // Clear the verification status after submission
+    this.otpStore.delete(mobileNumber);
+
+    // Call the service to process the form details
+    const result = await this.hallFormService.createHallForm(formDetails);
+    return { message: 'Hall form submitted successfully', ...result };
   }
 
   // Get all Hall forms (Admin access only)
@@ -42,7 +53,7 @@ export class HallFormController {
   @SetMetadata('role', 'Admin')
   @Get()
   async getAllHallForms() {
-    return this.hallFormService.getAllHallForms(); // Call the service to get all Hall forms
+    return this.hallFormService.getAllHallForms();
   }
 
   // Get Hall forms by parameters (Admin access only)
@@ -58,7 +69,7 @@ export class HallFormController {
       date?: string;
     },
   ) {
-    return this.hallFormService.getHallFormsByParams(query); // Call the service to get filtered Hall forms
+    return this.hallFormService.getHallFormsByParams(query);
   }
 
   // Delete all Hall forms (Admin access only)
@@ -75,5 +86,40 @@ export class HallFormController {
   @Delete(':id')
   async deleteHallFormById(@Param('id') id: number) {
     return this.hallFormService.deleteHallFormById(id);
+  }
+
+  // Disable hall availability (Admin access only)
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @SetMetadata('role', 'Admin')
+  @Post('disable')
+  async disableHallAvailability(
+    @Body()
+    body: {
+      hallId: number;
+      date: string;
+      reason: string;
+      adminId: number;
+    },
+  ) {
+    return this.hallFormService.disableHallAvailability(
+      body.hallId,
+      body.date,
+      body.reason,
+      body.adminId,
+    );
+  }
+
+  // Enable hall availability (Admin access only)
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @SetMetadata('role', 'Admin')
+  @Post('enable')
+  async enableHallAvailability(
+    @Body() body: { hallId: number; date: string; adminId: number },
+  ) {
+    return this.hallFormService.enableHallAvailability(
+      body.hallId,
+      body.date,
+      body.adminId,
+    );
   }
 }

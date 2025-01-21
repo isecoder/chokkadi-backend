@@ -109,4 +109,16 @@ export class HallsController {
       adminId,
     );
   }
+
+  // Enable hall availability for a specific date
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @SetMetadata('role', 'Admin') // Require Admin role
+  @Post('enable')
+  async enableHallAvailability(
+    @Body() enableDto: { hallId: number; date: string; adminId: number },
+  ) {
+    const { hallId, date, adminId } = enableDto;
+
+    return this.hallFormService.enableHallAvailability(hallId, date, adminId);
+  }
 }
