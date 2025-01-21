@@ -1,49 +1,41 @@
 import {
   Controller,
   Post,
-  Get,
-  Delete,
   Body,
-  Query,
+  Get,
+  Param,
+  Delete,
   UseGuards,
   SetMetadata,
+  Query,
   BadRequestException,
-  Param,
 } from '@nestjs/common';
 import { HallFormService } from './hallform.service';
 import { CreateHallFormDto } from './dto/create-hallform.dto';
-import { SessionAuthGuard } from '../auth/auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-
+import { OtpStoreService } from '../otp/otp-store.service';
+import { SessionAuthGuard } from 'src/auth/auth.guard';
+import { RolesGuard } from 'src/auth/roles.guard';
 @Controller('hallforms')
 export class HallFormController {
-  private otpStore: Map<string, { otp: string; isVerified: boolean }>;
+  constructor(
+    private readonly hallFormService: HallFormService,
+    private readonly otpStoreService: OtpStoreService,
+  ) {}
 
-  constructor(private readonly hallFormService: HallFormService) {
-    this.otpStore = new Map(); // Initialize the OTP store
-  }
-
-  // Submit Hall Form
   @Post()
   async submitHallForm(
     @Body() body: { mobileNumber: string; formDetails: CreateHallFormDto },
   ) {
     const { mobileNumber, formDetails } = body;
 
-    if (!mobileNumber) {
-      throw new BadRequestException('Mobile number is required');
-    }
-
-    const otpEntry = this.otpStore.get(mobileNumber);
-    console.log('OTP Store:', this.otpStore);
+    const otpEntry = this.otpStoreService.getOtp(mobileNumber);
+    this.otpStoreService.logStore();
     if (!otpEntry || !otpEntry.isVerified) {
       throw new BadRequestException('Mobile number is not verified');
     }
 
-    // Clear the verification status after submission
-    this.otpStore.delete(mobileNumber);
+    this.otpStoreService.deleteOtp(mobileNumber);
 
-    // Call the service to process the form details
     const result = await this.hallFormService.createHallForm(formDetails);
     return { message: 'Hall form submitted successfully', ...result };
   }
