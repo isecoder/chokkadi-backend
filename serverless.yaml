@@ -26,6 +26,12 @@ functions:
       - httpApi:
           path: /{proxy+}
           method: ANY
+    layers:
+      - { Ref: GraphicsLayer }
+
+layers:
+  GraphicsLayer:
+    path: graphics-layer.zip # Path to your zipped layer file.
 
 package:
   exclude:
