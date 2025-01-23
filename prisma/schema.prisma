@@ -32,7 +32,6 @@ model Users {
   ManagedHallAvailability HallAvailability[] @relation("UserManagedAvailability")
 }
 
-
 model Images {
   image_id      Int       @id @default(autoincrement())
   alt_text      String?
@@ -44,6 +43,17 @@ model Images {
 
   createdBy     Users     @relation("createdByRelation", fields: [created_by], references: [user_id])
   modifiedBy    Users?    @relation("modifiedByRelation", fields: [modified_by], references: [user_id])
+
+  Gallery       Gallery[]
+  HallImages    HallImages[]
+  NewsImages    NewsImages[]
+}
+
+model Gallery {
+  gallery_id Int      @id @default(autoincrement())
+  title      String
+  image_id   Int
+  Images     Images   @relation(fields: [image_id], references: [image_id])
 }
 
 model Halls {
@@ -52,11 +62,19 @@ model Halls {
   description         String
   name_kannada        String
   description_kannada String
-  base_price          Decimal
   available           Boolean        @default(true) // General availability status
 
   hallForms           HallForm[]     @relation("HallForms")
   hallAvailability    HallAvailability[]
+  HallImages          HallImages[]
+}
+
+model HallImages {
+  id        Int     @id @default(autoincrement())
+  hall_id   Int
+  image_id  Int
+  Halls     Halls   @relation(fields: [hall_id], references: [hall_id])
+  Images    Images  @relation(fields: [image_id], references: [image_id])
 }
 
 model HallAvailability {
@@ -93,6 +111,15 @@ model NewsUpdates {
   updated_at       DateTime @updatedAt
   created_by       Int?
   User             Users?   @relation(fields: [created_by], references: [user_id])
+  NewsImages       NewsImages[]
+}
+
+model NewsImages {
+  id        Int     @id @default(autoincrement())
+  news_id   Int
+  image_id  Int
+  NewsUpdates NewsUpdates @relation(fields: [news_id], references: [news_id])
+  Images    Images  @relation(fields: [image_id], references: [image_id])
 }
 
 model HallForm {

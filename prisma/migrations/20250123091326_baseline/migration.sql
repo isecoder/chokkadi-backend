@@ -114,10 +114,10 @@ ALTER TABLE "Images" ADD CONSTRAINT "Images_created_by_fkey" FOREIGN KEY ("creat
 ALTER TABLE "Images" ADD CONSTRAINT "Images_modified_by_fkey" FOREIGN KEY ("modified_by") REFERENCES "Users"("user_id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "HallAvailability" ADD CONSTRAINT "HallAvailability_hall_id_fkey" FOREIGN KEY ("hall_id") REFERENCES "Halls"("hall_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "HallAvailability" ADD CONSTRAINT "HallAvailability_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "Users"("user_id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "HallAvailability" ADD CONSTRAINT "HallAvailability_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "Users"("user_id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "HallAvailability" ADD CONSTRAINT "HallAvailability_hall_id_fkey" FOREIGN KEY ("hall_id") REFERENCES "Halls"("hall_id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "NewsUpdates" ADD CONSTRAINT "NewsUpdates_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "Users"("user_id") ON DELETE SET NULL ON UPDATE CASCADE;
