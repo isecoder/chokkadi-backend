@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsNumber } from 'class-validator';
+import {
+  IsOptional,
+  IsBoolean,
+  IsString,
+  IsArray,
+  IsNumber,
+} from 'class-validator';
 
 export class UpdateHallDto {
   @IsOptional()
@@ -18,6 +24,11 @@ export class UpdateHallDto {
   description_kannada?: string;
 
   @IsOptional()
-  @IsNumber({ allowNaN: false, allowInfinity: false }) // Using IsNumber for decimal validation
-  base_price?: number;
+  @IsBoolean()
+  available?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true }) // Validate that each value in the array is a number
+  imageIds?: number[];
 }

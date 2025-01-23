@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHallDto } from './dto/create-hall.dto';
 import { UpdateHallDto } from './dto/update-hall.dto';
@@ -12,16 +12,53 @@ export class HallsService extends BaseService {
 
   // Create a new Hall
   async createHall(createHallDto: CreateHallDto) {
+    const {
+      name,
+      description,
+      name_kannada,
+      description_kannada,
+      available,
+      imageIds,
+    } = createHallDto;
+
+    if (!imageIds || imageIds.length === 0) {
+      throw new BadRequestException(
+        'At least one image must be associated with the hall.',
+      );
+    }
+
     return await this.prisma.halls.create({
       data: {
-        ...createHallDto,
+        name,
+        description,
+        name_kannada,
+        description_kannada,
+        available: available ?? true,
+        HallImages: {
+          create: imageIds.map((id) => ({ image_id: id })),
+        },
+      },
+      include: {
+        HallImages: {
+          include: {
+            Images: true, // Include associated images in the response
+          },
+        },
       },
     });
   }
 
   // Get all Halls
   async getAllHalls() {
-    return await this.prisma.halls.findMany();
+    return await this.prisma.halls.findMany({
+      include: {
+        HallImages: {
+          include: {
+            Images: true, // Include associated images
+          },
+        },
+      },
+    });
   }
 
   // Get a Hall by ID
@@ -30,6 +67,13 @@ export class HallsService extends BaseService {
     return this.handleDatabaseOperation(
       this.prisma.halls.findUnique({
         where: { hall_id: hallId },
+        include: {
+          HallImages: {
+            include: {
+              Images: true, // Include associated images
+            },
+          },
+        },
       }),
       hallId,
       'Hall',
@@ -47,10 +91,36 @@ export class HallsService extends BaseService {
       'Hall',
     );
 
+    const {
+      name,
+      description,
+      name_kannada,
+      description_kannada,
+      available,
+      imageIds,
+    } = updateHallDto;
+
     return await this.prisma.halls.update({
       where: { hall_id: hallId },
       data: {
-        ...updateHallDto,
+        name,
+        description,
+        name_kannada,
+        description_kannada,
+        available,
+        HallImages: imageIds
+          ? {
+              deleteMany: {}, // Remove existing relationships
+              create: imageIds.map((id) => ({ image_id: id })),
+            }
+          : undefined,
+      },
+      include: {
+        HallImages: {
+          include: {
+            Images: true, // Include associated images
+          },
+        },
       },
     });
   }

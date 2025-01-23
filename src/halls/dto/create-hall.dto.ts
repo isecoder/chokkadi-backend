@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsBoolean,
+  IsString,
+  IsArray,
+  IsNumber,
+} from 'class-validator';
 
 export class CreateHallDto {
   @IsNotEmpty()
@@ -9,15 +16,20 @@ export class CreateHallDto {
   @IsString()
   description: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  name_kannada: string;
+  name_kannada?: string;
+
+  @IsOptional()
+  @IsString()
+  description_kannada?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  available?: boolean;
 
   @IsNotEmpty()
-  @IsString()
-  description_kannada: string;
-
-  @IsNotEmpty()
-  @IsNumber({ allowNaN: false, allowInfinity: false }) // Using IsNumber for decimal validation
-  base_price: number;
+  @IsArray()
+  @IsNumber({}, { each: true }) // Validate that each value in the array is a number
+  imageIds: number[];
 }
