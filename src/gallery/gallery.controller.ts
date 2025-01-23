@@ -9,16 +9,20 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { GalleryService } from './gallery.service';
+import { GalleryDto } from './dto/gallery.dto';
+import { SupabaseService } from '../supabase/supabase.service';
 
 @Controller('gallery')
 export class GalleryController {
-  constructor(private galleryService: GalleryService) {}
+  constructor(
+    private readonly galleryService: GalleryService,
+    private readonly supabaseService: SupabaseService,
+  ) {}
 
-  // Create a new gallery
   @Post('create')
   async createGallery(
     @Body('title') title: string,
-    @Body('imageId') imageId: number, // Accept a single image ID
+    @Body('imageId') imageId: number,
   ) {
     if (!title) {
       throw new BadRequestException('Title is required.');
@@ -30,12 +34,11 @@ export class GalleryController {
     return this.galleryService.createGallery(title, imageId);
   }
 
-  // Update an existing gallery
   @Put('update/:id')
   async updateGallery(
     @Param('id') galleryId: number,
     @Body('title') title: string,
-    @Body('imageId') imageId: number, // Accept a single image ID
+    @Body('imageId') imageId: number,
   ) {
     if (!title) {
       throw new BadRequestException('Title is required.');
@@ -47,21 +50,39 @@ export class GalleryController {
     return this.galleryService.updateGallery(galleryId, title, imageId);
   }
 
-  // Delete a gallery by ID
   @Delete('delete/:id')
   async deleteGallery(@Param('id') galleryId: number) {
     return this.galleryService.deleteGallery(galleryId);
   }
 
-  // Get a gallery by ID
   @Get(':id')
-  async getGalleryById(@Param('id') galleryId: number) {
-    return this.galleryService.getGalleryById(galleryId);
+  async getGalleryById(@Param('id') galleryId: number): Promise<GalleryDto> {
+    const gallery = await this.galleryService.getGalleryById(galleryId);
+
+    if (gallery && gallery.Images) {
+      gallery.Images = {
+        ...gallery.Images,
+        public_url: this.supabaseService.getPublicUrl(gallery.Images.file_path),
+      } as any; // Use type assertion to bypass TypeScript error
+    }
+
+    return gallery as GalleryDto;
   }
 
-  // Get all galleries
   @Get()
-  async getAllGalleries() {
-    return this.galleryService.getAllGalleries();
+  async getAllGalleries(): Promise<GalleryDto[]> {
+    const galleries = await this.galleryService.getAllGalleries();
+
+    return galleries.map((gallery) => {
+      if (gallery.Images) {
+        gallery.Images = {
+          ...gallery.Images,
+          public_url: this.supabaseService.getPublicUrl(
+            gallery.Images.file_path,
+          ),
+        } as any; // Use type assertion here as well
+      }
+      return gallery as GalleryDto;
+    });
   }
 }

@@ -4,10 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
 export class GalleryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly supabaseService: SupabaseService, // Fixed SupabaseService import
+  ) {}
 
   // Create a gallery associated with a single image
   async createGallery(title: string, imageId: number) {
@@ -66,20 +70,33 @@ export class GalleryService {
     });
   }
 
-  // Delete a gallery
+  // Delete a gallery and its associated image
   async deleteGallery(galleryId: number) {
     // Check if the gallery exists
     const gallery = await this.prisma.gallery.findUnique({
       where: { gallery_id: galleryId },
+      include: {
+        Images: true, // Ensure the associated image is included
+      },
     });
+
     if (!gallery) {
       throw new NotFoundException('Gallery not found.');
     }
 
-    // Delete the gallery
-    return this.prisma.gallery.delete({
+    const imageId = gallery.Images?.image_id;
+
+    // Delete the gallery first
+    const deletedGallery = await this.prisma.gallery.delete({
       where: { gallery_id: galleryId },
     });
+
+    // Delete the associated image after deleting the gallery
+    if (imageId) {
+      await this.supabaseService.deleteImage(imageId);
+    }
+
+    return deletedGallery;
   }
 
   // Get a gallery by ID
