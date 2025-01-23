@@ -10,7 +10,7 @@ import { ProfileModule } from './profile/profile.module';
 import { RolesModule } from './seeds/seeds.module';
 import { AdminModule } from './admin/admin.module';
 import { getSessionConfig } from './common/config/session.config'; // Import the session config utility
-import { NewsupdatesModule } from './newsupdates/newsupdates.module';
+import { NewsupdatesModule } from './news-updates/news-updates.module';
 import { HallsModule } from './halls/halls.module';
 
 import { LoggerMiddleware } from './middleware/logger.middleware'; // Import the logger middleware

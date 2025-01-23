@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { NewsUpdatesService } from './newsupdates.service';
+import { NewsUpdatesService } from './news-updates.service';
 import { NewsUpdatesController } from './newsupdates.controller';
 
 @Module({
