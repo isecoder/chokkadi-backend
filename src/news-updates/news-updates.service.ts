@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
 export class NewsUpdatesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private supabaseService: SupabaseService,
+  ) {}
 
   // Create a news update
   async createNewsUpdate(data: {
@@ -23,7 +27,7 @@ export class NewsUpdatesService {
       imageIds,
     } = data;
 
-    return this.prisma.newsUpdates.create({
+    const newsUpdate = await this.prisma.newsUpdates.create({
       data: {
         title,
         content,
@@ -42,6 +46,22 @@ export class NewsUpdatesService {
         },
       },
     });
+
+    // Add public_url to each image
+    newsUpdate.NewsImages = await Promise.all(
+      newsUpdate.NewsImages.map(async (newsImage) => {
+        const image = newsImage.Images;
+        return {
+          ...newsImage,
+          Images: {
+            ...image,
+            public_url: this.supabaseService.getPublicUrl(image.file_path),
+          },
+        };
+      }),
+    );
+
+    return newsUpdate;
   }
 
   // Update a news update
@@ -66,7 +86,7 @@ export class NewsUpdatesService {
 
     const { title, content, title_kannada, content_kannada, imageIds } = data;
 
-    return this.prisma.newsUpdates.update({
+    const updatedNewsUpdate = await this.prisma.newsUpdates.update({
       where: { news_id: newsId },
       data: {
         title,
@@ -76,8 +96,8 @@ export class NewsUpdatesService {
         updated_at: new Date(),
         NewsImages: imageIds
           ? {
-              deleteMany: {},
-              create: imageIds.map((id) => ({ image_id: id })),
+              deleteMany: {}, // Remove existing images
+              create: imageIds.map((id) => ({ image_id: id })), // Add new images
             }
           : undefined,
       },
@@ -89,6 +109,22 @@ export class NewsUpdatesService {
         },
       },
     });
+
+    // Add public_url to each image
+    updatedNewsUpdate.NewsImages = await Promise.all(
+      updatedNewsUpdate.NewsImages.map(async (newsImage) => {
+        const image = newsImage.Images;
+        return {
+          ...newsImage,
+          Images: {
+            ...image,
+            public_url: this.supabaseService.getPublicUrl(image.file_path),
+          },
+        };
+      }),
+    );
+
+    return updatedNewsUpdate;
   }
 
   // Delete a news update
@@ -123,12 +159,26 @@ export class NewsUpdatesService {
       throw new NotFoundException('News update not found');
     }
 
+    // Add public_url to each image
+    news.NewsImages = await Promise.all(
+      news.NewsImages.map(async (newsImage) => {
+        const image = newsImage.Images;
+        return {
+          ...newsImage,
+          Images: {
+            ...image,
+            public_url: this.supabaseService.getPublicUrl(image.file_path),
+          },
+        };
+      }),
+    );
+
     return news;
   }
 
   // Get all news updates
   async getAllNewsUpdates() {
-    return this.prisma.newsUpdates.findMany({
+    const newsUpdates = await this.prisma.newsUpdates.findMany({
       include: {
         NewsImages: {
           include: {
@@ -137,5 +187,30 @@ export class NewsUpdatesService {
         },
       },
     });
+
+    // Add public_url to each image for all news updates
+    const updatedNewsUpdates = await Promise.all(
+      newsUpdates.map(async (newsUpdate) => {
+        const updatedNewsImages = await Promise.all(
+          newsUpdate.NewsImages.map(async (newsImage) => {
+            const image = newsImage.Images;
+            return {
+              ...newsImage,
+              Images: {
+                ...image,
+                public_url: this.supabaseService.getPublicUrl(image.file_path),
+              },
+            };
+          }),
+        );
+
+        return {
+          ...newsUpdate,
+          NewsImages: updatedNewsImages,
+        };
+      }),
+    );
+
+    return updatedNewsUpdates;
   }
 }

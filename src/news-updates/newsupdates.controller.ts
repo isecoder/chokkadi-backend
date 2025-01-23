@@ -18,7 +18,7 @@ export class NewsUpdatesController {
   constructor(private newsUpdatesService: NewsUpdatesService) {}
 
   // Create a news update
-  @Post('create')
+  @Post()
   async createNewsUpdate(
     @Body() createNewsUpdateDto: CreateNewsUpdateDto,
     @Req() req: any,
