@@ -16,6 +16,7 @@ import { HallsModule } from './halls/halls.module';
 import { LoggerMiddleware } from './middleware/logger.middleware'; // Import the logger middleware
 import { HallFormModule } from './hallform/hallform.module';
 import { OtpModule } from './otp/otp.module';
+import { GalleryModule } from './gallery/gallery.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { OtpModule } from './otp/otp.module';
     HallsModule,
     HallFormModule,
     OtpModule,
+    GalleryModule,
   ],
 })
 export class AppModule implements NestModule {
