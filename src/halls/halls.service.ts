@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHallDto } from './dto/create-hall.dto';
 import { UpdateHallDto } from './dto/update-hall.dto';
@@ -172,20 +176,51 @@ export class HallsService extends BaseService {
 
   // Delete a Hall
   async deleteHall(hallId: number) {
-    // Ensure the hall exists before deleting
-    await this.handleDatabaseOperation(
-      this.prisma.halls.findUnique({
-        where: { hall_id: hallId },
-      }),
-      hallId,
-      'Hall',
+    // Check if the hall exists
+    const hall = await this.prisma.halls.findUnique({
+      where: { hall_id: hallId },
+      include: {
+        HallImages: {
+          include: {
+            Images: true, // Ensure the associated images are included
+          },
+        },
+      },
+    });
+
+    if (!hall) {
+      throw new NotFoundException('Hall not found.');
+    }
+
+    // Collect all associated image IDs
+    const imageIds = hall.HallImages?.map(
+      (hallImage) => hallImage.Images?.image_id,
     );
 
-    await this.prisma.halls.delete({
+    // Delete the rows in HallImages first
+    await this.prisma.hallImages.deleteMany({
       where: { hall_id: hallId },
     });
 
-    return { message: 'Hall deleted successfully' };
+    // Delete the hall next
+    const deletedHall = await this.prisma.halls.delete({
+      where: { hall_id: hallId },
+    });
+
+    // Delete the associated images after deleting the hall and HallImages rows
+    if (imageIds && imageIds.length > 0) {
+      for (const imageId of imageIds) {
+        if (imageId) {
+          await this.supabaseService.deleteImage(imageId);
+        }
+      }
+    }
+
+    return {
+      message:
+        'Hall, associated images, and HallImages rows deleted successfully',
+      deletedHall,
+    };
   }
 
   // Delete all Halls

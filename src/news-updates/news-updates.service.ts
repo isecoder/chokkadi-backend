@@ -127,19 +127,52 @@ export class NewsUpdatesService {
     return updatedNewsUpdate;
   }
 
-  // Delete a news update
+  // Delete a news update and its associated images
   async deleteNewsUpdate(newsId: number) {
+    // Check if the news update exists
     const news = await this.prisma.newsUpdates.findUnique({
       where: { news_id: newsId },
+      include: {
+        NewsImages: {
+          include: {
+            Images: true, // Ensure associated images are included
+          },
+        },
+      },
     });
 
     if (!news) {
       throw new NotFoundException('News update not found');
     }
 
-    return this.prisma.newsUpdates.delete({
+    // Collect all associated image IDs
+    const imageIds = news.NewsImages?.map(
+      (newsImage) => newsImage.Images?.image_id,
+    );
+
+    // Delete rows in the NewsImages table
+    await this.prisma.newsImages.deleteMany({
       where: { news_id: newsId },
     });
+
+    // Delete the news update itself
+    const deletedNews = await this.prisma.newsUpdates.delete({
+      where: { news_id: newsId },
+    });
+
+    // Delete the associated images after deleting the news update
+    if (imageIds && imageIds.length > 0) {
+      for (const imageId of imageIds) {
+        if (imageId) {
+          await this.supabaseService.deleteImage(imageId);
+        }
+      }
+    }
+
+    return {
+      message: 'News update and associated images deleted successfully',
+      deletedNews,
+    };
   }
 
   // Get a single news update by ID

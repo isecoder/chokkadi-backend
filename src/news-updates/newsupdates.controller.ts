@@ -53,7 +53,7 @@ export class NewsUpdatesController {
   }
 
   // Delete a news update
-  @Delete('delete/:id')
+  @Delete(':id')
   async deleteNewsUpdate(@Param('id') newsId: number) {
     return this.newsUpdatesService.deleteNewsUpdate(newsId);
   }
