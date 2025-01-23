@@ -3,10 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateHallDto } from './dto/create-hall.dto';
 import { UpdateHallDto } from './dto/update-hall.dto';
 import { BaseService } from 'src/common/utils/base.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
 export class HallsService extends BaseService {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly supabaseService: SupabaseService,
+  ) {
     super();
   }
 
@@ -50,7 +54,7 @@ export class HallsService extends BaseService {
 
   // Get all Halls
   async getAllHalls() {
-    return await this.prisma.halls.findMany({
+    const halls = await this.prisma.halls.findMany({
       include: {
         HallImages: {
           include: {
@@ -59,12 +63,25 @@ export class HallsService extends BaseService {
         },
       },
     });
+
+    // Add public_url to associated images
+    return halls.map((hall) => ({
+      ...hall,
+      HallImages: hall.HallImages.map((hallImage) => ({
+        ...hallImage,
+        Images: {
+          ...hallImage.Images,
+          public_url: this.supabaseService.getPublicUrl(
+            hallImage.Images.file_path,
+          ),
+        },
+      })),
+    }));
   }
 
   // Get a Hall by ID
   async getHallById(hallId: number) {
-    // Use BaseService to handle the database operation and throw NotFoundException if needed
-    return this.handleDatabaseOperation(
+    const hall = await this.handleDatabaseOperation(
       this.prisma.halls.findUnique({
         where: { hall_id: hallId },
         include: {
@@ -78,6 +95,20 @@ export class HallsService extends BaseService {
       hallId,
       'Hall',
     );
+
+    // Add public_url to associated images
+    return {
+      ...hall,
+      HallImages: hall.HallImages.map((hallImage) => ({
+        ...hallImage,
+        Images: {
+          ...hallImage.Images,
+          public_url: this.supabaseService.getPublicUrl(
+            hallImage.Images.file_path,
+          ),
+        },
+      })),
+    };
   }
 
   // Update a Hall
@@ -100,7 +131,7 @@ export class HallsService extends BaseService {
       imageIds,
     } = updateHallDto;
 
-    return await this.prisma.halls.update({
+    const updatedHall = await this.prisma.halls.update({
       where: { hall_id: hallId },
       data: {
         name,
@@ -123,6 +154,20 @@ export class HallsService extends BaseService {
         },
       },
     });
+
+    // Add public_url to associated images
+    return {
+      ...updatedHall,
+      HallImages: updatedHall.HallImages.map((hallImage) => ({
+        ...hallImage,
+        Images: {
+          ...hallImage.Images,
+          public_url: this.supabaseService.getPublicUrl(
+            hallImage.Images.file_path,
+          ),
+        },
+      })),
+    };
   }
 
   // Delete a Hall
