@@ -32,13 +32,13 @@ export class OtpService {
     fullName: string;
     purpose: string;
     mobileNumber: string;
-    bookingDate: string;
+    bookingDate: string | Date;
   }): Promise<void> {
     const { fullName, purpose, mobileNumber, bookingDate } = details;
     await this.twilioClient.messages.create({
       body: `Hare Raama!\nA new hall reservation request has been received. Please review and confirm the booking with the user.\n\nUser Details:\n\nName: ${fullName}\nPurpose: ${purpose}\nMobile: ${mobileNumber}\nBooking Date: ${bookingDate}\n\nKindly contact the user or verify their details to confirm the booking at your earliest convenience.`,
       from: this.sender,
-      to: this.sender, // Admin or management contact number
+      to: process.env.TEMPLE_CONTACT_NUMBER, // Admin or management contact number
     });
   }
 
@@ -46,7 +46,7 @@ export class OtpService {
     fullName: string;
     purpose: string;
     mobileNumber: string;
-    bookingDate: string;
+    bookingDate: Date;
     contactNumber: string;
   }): Promise<void> {
     const { fullName, purpose, mobileNumber, bookingDate, contactNumber } =
@@ -62,7 +62,7 @@ export class OtpService {
     fullName: string;
     purpose: string;
     mobileNumber: string;
-    bookingDate: string;
+    bookingDate: Date;
   }): Promise<void> {
     const { fullName, purpose, mobileNumber, bookingDate } = details;
     await this.twilioClient.messages.create({

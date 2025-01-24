@@ -65,32 +65,7 @@ export class HallFormService extends BaseService {
       );
     }
 
-    // Check if the hall is disabled
-    const disabledHall = await this.prisma.hallAvailability.findFirst({
-      where: {
-        hall_id: hallId,
-        date: { gte: startOfDay, lte: endOfDay },
-        is_booked: false,
-      },
-    });
-
-    if (disabledHall) {
-      throw new BadRequestException(
-        `The hall is disabled for the selected date due to: ${disabledHall.reason}`,
-      );
-    }
-
-    // Mark the hall as booked
-    await this.prisma.hallAvailability.create({
-      data: {
-        hall_id: hallId,
-        date: startOfDay,
-        is_booked: true,
-        reason: `Booked for ${reason}`,
-      },
-    });
-
-    // Create the hall form entry
+    // Proceed to create the hall form entry
     const createdHallForm = await this.prisma.hallForm.create({
       data: {
         name,
@@ -101,6 +76,16 @@ export class HallFormService extends BaseService {
           connect: { hall_id: hallId },
         },
         reason,
+      },
+    });
+
+    // Populate hall availability with is_booked as false
+    await this.prisma.hallAvailability.create({
+      data: {
+        hall_id: hallId,
+        date: startOfDay,
+        is_booked: false,
+        reason: 'Available',
       },
     });
 
@@ -203,6 +188,57 @@ export class HallFormService extends BaseService {
         reason,
         createdBy: adminId,
       },
+    });
+  }
+
+  async confirmReserve(hallFormId: number, date: Date): Promise<void> {
+    const parsedDate = new Date(date);
+    parsedDate.setUTCHours(0, 0, 0, 0); // Ensure the time is set to 00:00:00 UTC
+
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException(
+        'Invalid date format. Please use ISO format.',
+      );
+    }
+
+    await this.prisma.$transaction(async (prisma) => {
+      // Fetch the specific hall form entry by ID
+      const hallForm = await prisma.hallForm.findUnique({
+        where: { id: hallFormId },
+      });
+
+      if (
+        !hallForm ||
+        new Date(hallForm.date).getTime() !== parsedDate.getTime()
+      ) {
+        throw new NotFoundException(
+          'No hall form found for the specified ID and date.',
+        );
+      }
+
+      // Check if availability exists and is not already booked for the hallForm's hall ID and date
+      const availability = await prisma.hallAvailability.findFirst({
+        where: {
+          hall_id: hallForm.hallId,
+          date: parsedDate,
+          is_booked: false,
+        },
+      });
+
+      if (!availability) {
+        throw new BadRequestException(
+          'The hall is either already booked or not available for the selected date.',
+        );
+      }
+
+      // Mark the hall as booked with the reason from the hall form
+      await prisma.hallAvailability.update({
+        where: { id: availability.id },
+        data: {
+          is_booked: true,
+          reason: `Booked for ${hallForm.reason}`,
+        },
+      });
     });
   }
 

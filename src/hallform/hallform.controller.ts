@@ -12,14 +12,18 @@ import {
 } from '@nestjs/common';
 import { HallFormService } from './hallform.service';
 import { CreateHallFormDto } from './dto/create-hallform.dto';
+import { ConfirmReserveDto } from './dto/confirm-reserve.dto';
 import { OtpStoreService } from '../otp/otp-store.service';
+import { OtpService } from '../otp/otp.service'; // Import OtpService
 import { SessionAuthGuard } from 'src/auth/auth.guard';
 import { RolesGuard } from 'src/auth/roles.guard';
+
 @Controller('hallforms')
 export class HallFormController {
   constructor(
     private readonly hallFormService: HallFormService,
     private readonly otpStoreService: OtpStoreService,
+    private readonly otpService: OtpService, // Inject OtpService
   ) {}
 
   @Post()
@@ -34,12 +38,44 @@ export class HallFormController {
       throw new BadRequestException('Mobile number is not verified');
     }
 
+    // Call sendReserveUnderReview before deleting the OTP
+    await this.otpService.sendReserveUnderReview({
+      fullName: formDetails.name,
+      purpose: formDetails.reason,
+      mobileNumber: formDetails.mobileNumber,
+      bookingDate: formDetails.date,
+      contactNumber: process.env.TEMPLE_CONTACT_NUMBER, // Use environment variable or static contact number
+    });
+
+    // Call sendReserveRequest to notify admin
+    await this.otpService.sendReserveRequest({
+      fullName: formDetails.name,
+      purpose: formDetails.reason,
+      mobileNumber: formDetails.mobileNumber,
+      bookingDate: formDetails.date,
+    });
+
     this.otpStoreService.deleteOtp(mobileNumber);
 
     const result = await this.hallFormService.createHallForm(formDetails);
     return { message: 'Hall form submitted successfully', ...result };
   }
 
+  @Post(':id/confirm-reserve')
+  async confirmReserve(
+    @Param('id') hallFormId: number,
+    @Body() body: ConfirmReserveDto,
+  ) {
+    const { date } = body;
+
+    if (!date) {
+      throw new BadRequestException('Date is required.');
+    }
+
+    await this.hallFormService.confirmReserve(hallFormId, date);
+
+    return { message: 'Reservation confirmed successfully.' };
+  }
   // Get all Hall forms (Admin access only)
   @UseGuards(SessionAuthGuard, RolesGuard)
   @SetMetadata('role', 'Admin')
