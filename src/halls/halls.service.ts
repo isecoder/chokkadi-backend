@@ -228,4 +228,31 @@ export class HallsService extends BaseService {
     await this.prisma.halls.deleteMany(); // Deletes all records in the halls table
     return { message: 'All Halls deleted successfully' };
   }
+
+  // Get all HallAvailability records
+  async getAllHallAvailability() {
+    return this.prisma.hallAvailability.findMany({
+      include: {
+        hall: true, // Include related hall details
+        createdByUser: true, // Include user details who created the record
+      },
+    });
+  }
+
+  async getHallAvailability(hallId: number, date: string) {
+    if (!hallId || !date) {
+      throw new BadRequestException('Hall ID and date are required');
+    }
+
+    return this.prisma.hallAvailability.findMany({
+      where: {
+        hall_id: hallId,
+        date: new Date(date).toISOString(),
+      },
+      include: {
+        hall: true, // Include related hall details
+        createdByUser: true, // Include user details who created the record
+      },
+    });
+  }
 }

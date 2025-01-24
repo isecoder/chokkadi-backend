@@ -31,6 +31,8 @@ export class HallFormService extends BaseService {
     }
 
     const parsedDate = new Date(date);
+    parsedDate.setUTCHours(0, 0, 0, 0); // Ensure the time is set to 00:00:00 UTC
+
     if (isNaN(parsedDate.getTime())) {
       throw new BadRequestException(
         'Invalid date format. Please use ISO format.',
@@ -45,9 +47,8 @@ export class HallFormService extends BaseService {
     }
 
     const startOfDay = new Date(parsedDate);
-    startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(parsedDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
     // Check if the hall is already booked
     const existingBooking = await this.prisma.hallAvailability.findFirst({
@@ -85,7 +86,7 @@ export class HallFormService extends BaseService {
         hall_id: hallId,
         date: startOfDay,
         is_booked: true,
-        reason: `Booked by ${name}`,
+        reason: `Booked for ${reason}`,
       },
     });
 
@@ -103,23 +104,31 @@ export class HallFormService extends BaseService {
       },
     });
 
-    return { id: createdHallForm.id };
+    return {
+      id: createdHallForm.id,
+      date: parsedDate.toISOString().split('T')[0],
+    };
   }
 
   // Retrieve all Hall forms
   async getAllHallForms() {
-    return this.prisma.hallForm.findMany({
+    const hallForms = await this.prisma.hallForm.findMany({
       include: {
         hall: {
           select: { name: true },
         },
       },
     });
+
+    return hallForms.map((form) => ({
+      ...form,
+      date: new Date(form.date).toISOString().split('T')[0], // Ensure the date is returned in YYYY-MM-DD format
+    }));
   }
 
   // Retrieve Hall forms by parameters
   async getHallFormsByParams(filter: any) {
-    return this.prisma.hallForm.findMany({
+    const hallForms = await this.prisma.hallForm.findMany({
       where: {
         OR: [
           { id: filter.id },
@@ -132,6 +141,11 @@ export class HallFormService extends BaseService {
         hall: { select: { name: true } },
       },
     });
+
+    return hallForms.map((form) => ({
+      ...form,
+      date: new Date(form.date).toISOString().split('T')[0],
+    }));
   }
 
   // Delete all Hall forms
@@ -161,6 +175,8 @@ export class HallFormService extends BaseService {
     adminId: number,
   ) {
     const parsedDate = new Date(date);
+    parsedDate.setUTCHours(0, 0, 0, 0);
+
     if (isNaN(parsedDate.getTime())) {
       throw new BadRequestException(
         'Invalid date format. Please use ISO format.',
@@ -168,7 +184,6 @@ export class HallFormService extends BaseService {
     }
 
     const startOfDay = new Date(parsedDate);
-    startOfDay.setHours(0, 0, 0, 0);
 
     const existingBooking = await this.prisma.hallAvailability.findFirst({
       where: { hall_id: hallId, date: startOfDay, is_booked: true },
@@ -194,6 +209,8 @@ export class HallFormService extends BaseService {
   // Enable hall availability
   async enableHallAvailability(hallId: number, date: string, adminId: number) {
     const parsedDate = new Date(date);
+    parsedDate.setUTCHours(0, 0, 0, 0);
+
     if (isNaN(parsedDate.getTime())) {
       throw new BadRequestException(
         'Invalid date format. Please use ISO format.',
@@ -201,7 +218,6 @@ export class HallFormService extends BaseService {
     }
 
     const startOfDay = new Date(parsedDate);
-    startOfDay.setHours(0, 0, 0, 0);
 
     const disabledHall = await this.prisma.hallAvailability.findFirst({
       where: { hall_id: hallId, date: startOfDay, is_booked: false },

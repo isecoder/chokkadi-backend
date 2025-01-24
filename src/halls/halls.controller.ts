@@ -10,6 +10,7 @@ import {
   SetMetadata,
   Session,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { HallsService } from './halls.service';
 import { HallFormService } from 'src/hallform/hallform.service';
@@ -18,7 +19,6 @@ import { UpdateHallDto } from './dto/update-hall.dto';
 import { SessionAuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 
-// Apply SessionAuthGuard globally for the controller
 @Controller('halls')
 export class HallsController {
   constructor(
@@ -26,10 +26,26 @@ export class HallsController {
     private readonly hallFormService: HallFormService,
   ) {}
 
+  // Fetch all HallAvailability records
+  @Get('availability')
+  async getAllHallAvailability() {
+    return this.hallsService.getAllHallAvailability();
+  }
+  async getHallAvailability(
+    @Query('hallId') hallId: number,
+    @Query('date') date: string,
+  ) {
+    if (!hallId || !date) {
+      throw new BadRequestException('hallId and date are required');
+    }
+
+    return this.hallsService.getHallAvailability(hallId, date);
+  }
+
   // Create a new Hall - Only admin users can create Halls
   @UseGuards(SessionAuthGuard)
   @UseGuards(RolesGuard)
-  @SetMetadata('role', 'Admin') // Require Admin role for this route
+  @SetMetadata('role', 'Admin')
   @Post()
   async createHall(
     @Body() createHallDto: CreateHallDto,
@@ -57,7 +73,7 @@ export class HallsController {
   // Update a Hall by ID - Only admin users can access this route
   @UseGuards(SessionAuthGuard)
   @UseGuards(RolesGuard)
-  @SetMetadata('role', 'Admin') // Require Admin role for this route
+  @SetMetadata('role', 'Admin')
   @Patch(':id')
   async updateHall(
     @Param('id') id: number,
@@ -74,7 +90,7 @@ export class HallsController {
   // Delete a Hall by ID - Only admin users can access this route
   @UseGuards(SessionAuthGuard)
   @UseGuards(RolesGuard)
-  @SetMetadata('role', 'Admin') // Require Admin role for this route
+  @SetMetadata('role', 'Admin')
   @Delete(':id')
   async deleteHall(@Param('id') id: number) {
     return this.hallsService.deleteHall(id);
@@ -83,7 +99,7 @@ export class HallsController {
   // Delete all Halls - Only admin users can access this route
   @UseGuards(SessionAuthGuard)
   @UseGuards(RolesGuard)
-  @SetMetadata('role', 'Admin') // Require Admin role for this route
+  @SetMetadata('role', 'Admin')
   @Delete()
   async deleteAllHalls() {
     return this.hallsService.deleteAllHalls();
@@ -112,7 +128,7 @@ export class HallsController {
 
   // Enable hall availability for a specific date
   @UseGuards(SessionAuthGuard, RolesGuard)
-  @SetMetadata('role', 'Admin') // Require Admin role
+  @SetMetadata('role', 'Admin')
   @Post('enable')
   async enableHallAvailability(
     @Body() enableDto: { hallId: number; date: string; adminId: number },
