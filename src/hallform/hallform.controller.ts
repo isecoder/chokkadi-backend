@@ -4,6 +4,7 @@ import {
   Body,
   Get,
   Param,
+  Patch,
   Delete,
   UseGuards,
   SetMetadata,
@@ -61,7 +62,7 @@ export class HallFormController {
     return { message: 'Hall form submitted successfully', ...result };
   }
 
-  @Post(':id/confirm-reserve')
+  @Patch(':id/confirm-reserve')
   async confirmReserve(
     @Param('id') hallFormId: number,
     @Body() body: ConfirmReserveDto,
@@ -72,7 +73,19 @@ export class HallFormController {
       throw new BadRequestException('Date is required.');
     }
 
-    await this.hallFormService.confirmReserve(hallFormId, date);
+    // Confirm the reservation in the database
+    const hallForm = await this.hallFormService.confirmReserve(
+      hallFormId,
+      date,
+    );
+
+    // Send confirmation message to the user
+    await this.otpService.sendReserveConfirmation({
+      fullName: hallForm.name,
+      purpose: hallForm.reason,
+      mobileNumber: hallForm.mobileNumber,
+      bookingDate: new Date(date),
+    });
 
     return { message: 'Reservation confirmed successfully.' };
   }

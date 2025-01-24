@@ -100,7 +100,15 @@ export class HallFormService extends BaseService {
     const hallForms = await this.prisma.hallForm.findMany({
       include: {
         hall: {
-          select: { name: true },
+          select: {
+            name: true,
+            description: true,
+            name_kannada: true,
+            description_kannada: true,
+            available: true,
+            hallAvailability: true,
+            HallImages: true,
+          },
         },
       },
     });
@@ -108,6 +116,13 @@ export class HallFormService extends BaseService {
     return hallForms.map((form) => ({
       ...form,
       date: new Date(form.date).toISOString().split('T')[0], // Ensure the date is returned in YYYY-MM-DD format
+      hall: {
+        ...form.hall,
+        hallAvailability: form.hall.hallAvailability.map((availability) => ({
+          ...availability,
+          date: new Date(availability.date).toISOString().split('T')[0], // Ensure availability dates are formatted
+        })),
+      },
     }));
   }
 
@@ -191,7 +206,7 @@ export class HallFormService extends BaseService {
     });
   }
 
-  async confirmReserve(hallFormId: number, date: Date): Promise<void> {
+  async confirmReserve(hallFormId: number, date: Date): Promise<any> {
     const parsedDate = new Date(date);
     parsedDate.setUTCHours(0, 0, 0, 0); // Ensure the time is set to 00:00:00 UTC
 
@@ -201,7 +216,7 @@ export class HallFormService extends BaseService {
       );
     }
 
-    await this.prisma.$transaction(async (prisma) => {
+    return await this.prisma.$transaction(async (prisma) => {
       // Fetch the specific hall form entry by ID
       const hallForm = await prisma.hallForm.findUnique({
         where: { id: hallFormId },
@@ -239,6 +254,9 @@ export class HallFormService extends BaseService {
           reason: `Booked for ${hallForm.reason}`,
         },
       });
+
+      // Return the hall form details for further use (e.g., sending confirmation SMS)
+      return hallForm;
     });
   }
 
