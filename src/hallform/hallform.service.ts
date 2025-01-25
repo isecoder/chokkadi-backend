@@ -85,7 +85,7 @@ export class HallFormService extends BaseService {
         hall_id: hallId,
         date: startOfDay,
         is_booked: false,
-        reason: 'Available',
+        reason: 'On hold',
       },
     });
 
