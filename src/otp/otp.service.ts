@@ -60,9 +60,11 @@ export class OtpService {
       contactNumber,
       bookingId,
     } = details;
+
     const formattedDate = new Date(bookingDate).toLocaleDateString('en-GB');
+
     await this.twilioClient.messages.create({
-      body: `Hare Raama!\nThank you for reserving the hall at Shrirama Temple Chokkadi.\nYour request is under review. Please contact the temple authority at ${contactNumber} for confirmation within 26 hours to finalize your booking.\n\nBooking ID: ${bookingId}\nDetails provided by you in the form:\n\nName: ${fullName}\nPurpose: ${purpose}\nMobile: ${mobileNumber}\nBooking Date: ${formattedDate}\n\nFailure to confirm within the given time may result in cancellation of the reservation.\n\nThank you,\nShrirama Temple Chokkadi`,
+      body: `Hare Raama!\nThank you for reserving the hall at Shrirama Temple Chokkadi.\nYour request is under review. Please contact the temple authority at ${contactNumber} for confirmation within 26 hours to finalize your booking.\n\nBooking Id: ${bookingId}\n\nDetails provided by you in the form:\n    Name: ${fullName}\n    Purpose: ${purpose}\n    Mobile: ${mobileNumber}\n    Booking Date: ${formattedDate}\n\nTo confirm the booking, please make the necessary payment and contact the temple authority. Failure to confirm within the given time may result in cancellation of the reservation.\n\nThank you,\nShrirama Temple Chokkadi`,
       from: this.sender,
       to: mobileNumber,
     });
