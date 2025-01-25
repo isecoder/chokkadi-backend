@@ -26,7 +26,6 @@ export class HallFormController {
     private readonly otpStoreService: OtpStoreService,
     private readonly otpService: OtpService, // Inject OtpService
   ) {}
-
   @Post()
   async submitHallForm(
     @Body() body: { mobileNumber: string; formDetails: CreateHallFormDto },
@@ -39,6 +38,10 @@ export class HallFormController {
       throw new BadRequestException('Mobile number is not verified');
     }
 
+    // Generate a hall form entry and get the bookingId
+    const { bookingId, date } =
+      await this.hallFormService.createHallForm(formDetails);
+
     // Call sendReserveUnderReview before deleting the OTP
     await this.otpService.sendReserveUnderReview({
       fullName: formDetails.name,
@@ -46,6 +49,7 @@ export class HallFormController {
       mobileNumber: formDetails.mobileNumber,
       bookingDate: formDetails.date,
       contactNumber: process.env.TEMPLE_CONTACT_NUMBER, // Use environment variable or static contact number
+      bookingId, // Pass formatted bookingId
     });
 
     // Call sendReserveRequest to notify admin
@@ -54,12 +58,16 @@ export class HallFormController {
       purpose: formDetails.reason,
       mobileNumber: formDetails.mobileNumber,
       bookingDate: formDetails.date,
+      bookingId, // Pass formatted bookingId
     });
 
     this.otpStoreService.deleteOtp(mobileNumber);
 
-    const result = await this.hallFormService.createHallForm(formDetails);
-    return { message: 'Hall form submitted successfully', ...result };
+    return {
+      message: 'Hall form submitted successfully',
+      bookingId,
+      date, // Include the date if required
+    };
   }
 
   @Patch(':id/confirm-reserve')
@@ -85,6 +93,7 @@ export class HallFormController {
       purpose: hallForm.reason,
       mobileNumber: hallForm.mobileNumber,
       bookingDate: new Date(date),
+      bookingId: hallForm.bookingId,
     });
 
     return { message: 'Reservation confirmed successfully.' };

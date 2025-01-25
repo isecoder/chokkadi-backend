@@ -89,8 +89,11 @@ export class HallFormService extends BaseService {
       },
     });
 
+    // Generate a bookingId by appending 'DES' to the created hall form's ID
+    const bookingId = `DES${createdHallForm.id}`;
+
     return {
-      id: createdHallForm.id,
+      bookingId, // Return the bookingId
       date: parsedDate.toISOString().split('T')[0],
     };
   }
@@ -290,5 +293,9 @@ export class HallFormService extends BaseService {
         reason: `Enabled by Admin ID: ${adminId}`,
       },
     });
+  }
+  async generateBookingId(numericId: number): Promise<string> {
+    // Convert numeric ID to a string with the 'DES' prefix
+    return `DES${numericId}`;
   }
 }
