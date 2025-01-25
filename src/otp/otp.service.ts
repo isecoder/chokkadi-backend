@@ -38,7 +38,7 @@ export class OtpService {
     const { fullName, purpose, mobileNumber, bookingDate, bookingId } = details;
     const formattedDate = new Date(bookingDate).toLocaleDateString('en-GB');
     await this.twilioClient.messages.create({
-      body: `Hare Raama!\nA new hall reservation request has been received. Please review and confirm the booking with the user.\n\nBooking ID: ${bookingId}\nUser Details:\n\nName: ${fullName}\nPurpose: ${purpose}\nMobile: ${mobileNumber}\nBooking Date: ${formattedDate}\n\nKindly contact the user or verify their details to confirm the booking at your earliest convenience.`,
+      body: `Hare Raama!\nA new hall reservation request has been received. Please review and confirm the booking with the user.\n\nBooking ID: ${bookingId}\n\nUser Details:\nName: ${fullName}\nPurpose: ${purpose}\nMobile: ${mobileNumber}\nBooking Date: ${formattedDate}\n\nKindly contact the user or verify their details to confirm the booking at your earliest convenience.`,
       from: this.sender,
       to: process.env.TEMPLE_CONTACT_NUMBER, // Admin or management contact number
     });
