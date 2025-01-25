@@ -258,8 +258,14 @@ export class HallFormService extends BaseService {
         },
       });
 
-      // Return the hall form details for further use (e.g., sending confirmation SMS)
-      return hallForm;
+      // Generate a bookingId by appending 'DES' to the hall form's ID
+      const bookingId = `DES${hallForm.id}`;
+
+      // Return the hall form details along with the generated bookingId
+      return {
+        bookingId,
+        hallForm,
+      };
     });
   }
 

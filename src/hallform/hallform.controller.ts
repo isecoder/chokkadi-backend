@@ -32,17 +32,20 @@ export class HallFormController {
   ) {
     const { mobileNumber, formDetails } = body;
 
+    // Retrieve the OTP entry from the OTP store service
     const otpEntry = this.otpStoreService.getOtp(mobileNumber);
     this.otpStoreService.logStore();
+
+    // Check if the OTP entry exists and is verified
     if (!otpEntry || !otpEntry.isVerified) {
       throw new BadRequestException('Mobile number is not verified');
     }
 
-    // Generate a hall form entry and get the bookingId
+    // Generate a hall form entry and get the bookingId and date
     const { bookingId, date } =
       await this.hallFormService.createHallForm(formDetails);
 
-    // Call sendReserveUnderReview before deleting the OTP
+    // Notify the user with a reserve under review message
     await this.otpService.sendReserveUnderReview({
       fullName: formDetails.name,
       purpose: formDetails.reason,
@@ -52,7 +55,7 @@ export class HallFormController {
       bookingId, // Pass formatted bookingId
     });
 
-    // Call sendReserveRequest to notify admin
+    // Notify the admin about the reserve request
     await this.otpService.sendReserveRequest({
       fullName: formDetails.name,
       purpose: formDetails.reason,
@@ -61,12 +64,15 @@ export class HallFormController {
       bookingId, // Pass formatted bookingId
     });
 
+    // Delete the OTP entry from the OTP store
     this.otpStoreService.deleteOtp(mobileNumber);
 
+    // Return the response with the booking details and form details
     return {
       message: 'Hall form submitted successfully',
       bookingId,
-      date, // Include the date if required
+      date,
+      formDetails, // Include the form details in the response
     };
   }
 
@@ -81,8 +87,8 @@ export class HallFormController {
       throw new BadRequestException('Date is required.');
     }
 
-    // Confirm the reservation in the database
-    const hallForm = await this.hallFormService.confirmReserve(
+    // Confirm the reservation in the database and get the response
+    const { bookingId, hallForm } = await this.hallFormService.confirmReserve(
       hallFormId,
       date,
     );
@@ -93,11 +99,15 @@ export class HallFormController {
       purpose: hallForm.reason,
       mobileNumber: hallForm.mobileNumber,
       bookingDate: new Date(date),
-      bookingId: hallForm.bookingId,
+      bookingId, // Use the bookingId directly from the service response
     });
 
-    return { message: 'Reservation confirmed successfully.' };
+    return {
+      message: 'Reservation confirmed successfully.',
+      bookingId, // Include the bookingId in the response
+    };
   }
+
   // Get all Hall forms (Admin access only)
   @UseGuards(SessionAuthGuard, RolesGuard)
   @SetMetadata('role', 'Admin')
