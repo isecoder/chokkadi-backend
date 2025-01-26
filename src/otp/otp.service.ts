@@ -60,22 +60,14 @@ export class OtpService {
     purpose: string;
     mobileNumber: string;
     bookingDate: Date;
-    contactNumber: string;
     bookingId: string;
   }): Promise<void> {
-    const {
-      fullName,
-      purpose,
-      mobileNumber,
-      bookingDate,
-      contactNumber,
-      bookingId,
-    } = details;
+    const { fullName, purpose, mobileNumber, bookingDate, bookingId } = details;
 
     const formattedDate = new Date(bookingDate).toLocaleDateString('en-GB');
 
     await this.twilioClient.messages.create({
-      body: `Hare Raama!\nThank you for reserving the hall at Shrirama Temple Chokkadi.\nYour request is under review. Please contact the temple authority at ${contactNumber} for confirmation within 26 hours to finalize your booking.\n\nBooking Id: ${bookingId}\n\nDetails provided by you in the form:\n    Name: ${fullName}\n    Purpose: ${purpose}\n    Mobile: ${mobileNumber}\n    Booking Date: ${formattedDate}\n\nTo confirm the booking, please make the necessary payment and contact the temple authority. Failure to confirm within the given time may result in cancellation of the reservation.\n\nThank you,\nShrirama Temple Chokkadi`,
+      body: `Hare Raama!\nThank you for reserving the hall at Shrirama Temple Chokkadi.\nYour request is under review. Please contact the temple authority at one of the following numbers: +91 94486 25254, +91 70196 16082, 08257 200585, or +91 97412 51613 for confirmation within 26 hours to finalize your booking.\n\nBooking Id: ${bookingId}\n\nDetails provided by you in the form:\n    Name: ${fullName}\n    Purpose: ${purpose}\n    Mobile: ${mobileNumber}\n    Booking Date: ${formattedDate}\n\nTo confirm the booking, please make the necessary payment and contact the temple authority. Failure to confirm within the given time may result in cancellation of the reservation.\n\nThank you,\nShrirama Temple Chokkadi`,
       from: this.sender,
       to: mobileNumber,
     });

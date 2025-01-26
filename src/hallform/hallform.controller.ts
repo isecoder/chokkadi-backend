@@ -51,7 +51,6 @@ export class HallFormController {
       purpose: formDetails.reason,
       mobileNumber: formDetails.mobileNumber,
       bookingDate: formDetails.date,
-      contactNumber: process.env.TEMPLE_CONTACT_NUMBER, // Use environment variable or static contact number
       bookingId, // Pass formatted bookingId
     });
 
