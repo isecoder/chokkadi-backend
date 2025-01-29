@@ -304,4 +304,88 @@ export class HallFormService extends BaseService {
     // Convert numeric ID to a string with the 'DES' prefix
     return `DES${numericId}`;
   }
+
+  async createManualHallForm(createHallFormDto: CreateHallFormDto) {
+    const {
+      mobileNumber,
+      date,
+      hallId,
+      name,
+      reason,
+      mobileNumberConfirmation,
+    } = createHallFormDto;
+
+    if (mobileNumber !== mobileNumberConfirmation) {
+      throw new BadRequestException(
+        'Mobile number confirmation does not match.',
+      );
+    }
+
+    const parsedDate = new Date(date);
+    parsedDate.setUTCHours(0, 0, 0, 0); // Ensure the time is set to 00:00:00 UTC
+
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException(
+        'Invalid date format. Please use ISO format.',
+      );
+    }
+
+    const hall = await this.prisma.halls.findUnique({
+      where: { hall_id: hallId },
+    });
+    if (!hall) {
+      throw new NotFoundException(`Hall with ID ${hallId} not found.`);
+    }
+
+    const startOfDay = new Date(parsedDate);
+    const endOfDay = new Date(parsedDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    // Check if the hall is already booked
+    const existingBooking = await this.prisma.hallAvailability.findFirst({
+      where: {
+        hall_id: hallId,
+        date: { gte: startOfDay, lte: endOfDay },
+        is_booked: true,
+      },
+    });
+
+    if (existingBooking) {
+      throw new BadRequestException(
+        'The hall is already unavailable for the selected date.',
+      );
+    }
+
+    // Proceed to create the hall form entry
+    const createdHallForm = await this.prisma.hallForm.create({
+      data: {
+        name,
+        mobileNumber,
+        mobileNumberConfirmation,
+        date: parsedDate,
+        hall: {
+          connect: { hall_id: hallId },
+        },
+        reason,
+      },
+    });
+
+    // Populate hall availability with is_booked as true and set the reason from the created hall form
+    await this.prisma.hallAvailability.create({
+      data: {
+        hall_id: hallId,
+        date: startOfDay,
+        is_booked: true,
+        reason: createdHallForm.reason, // Reason is now sourced directly from the created hall form
+      },
+    });
+
+    // Generate a bookingId by appending 'DES' to the created hall form's ID
+    const bookingId = `DES${createdHallForm.id}`;
+
+    return {
+      bookingId, // Return the bookingId
+      date: parsedDate.toISOString().split('T')[0],
+    };
+  }
 }

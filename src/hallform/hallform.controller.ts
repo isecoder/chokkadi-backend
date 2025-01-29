@@ -181,4 +181,25 @@ export class HallFormController {
       body.adminId,
     );
   }
+
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @SetMetadata('role', 'Admin')
+  @Post('manual')
+  async submitHallFormWithoutOtp(
+    @Body() body: { formDetails: CreateHallFormDto },
+  ) {
+    const { formDetails } = body;
+
+    // Generate a hall form entry and get the bookingId and date
+    const { bookingId, date } =
+      await this.hallFormService.createManualHallForm(formDetails);
+
+    // Return the response with the booking details and form details
+    return {
+      message: 'Hall form submitted successfully',
+      bookingId,
+      date,
+      formDetails, // Include the form details in the response
+    };
+  }
 }
