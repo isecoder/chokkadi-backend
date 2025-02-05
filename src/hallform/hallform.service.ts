@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHallFormDto } from './dto/create-hallform.dto';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { BaseService } from 'src/common/utils/base.service';
 
 @Injectable()
@@ -387,5 +388,18 @@ export class HallFormService extends BaseService {
       bookingId, // Return the bookingId
       date: parsedDate.toISOString().split('T')[0],
     };
+  }
+
+  async updatePaymentDetails(id: number, updatePaymentDto: UpdatePaymentDto) {
+    const hallForm = await this.prisma.hallForm.findUnique({ where: { id } });
+
+    if (!hallForm) {
+      throw new NotFoundException(`HallForm with ID ${id} not found`);
+    }
+
+    return this.prisma.hallForm.update({
+      where: { id },
+      data: { paymentDetails: updatePaymentDto.paymentDetails },
+    });
   }
 }

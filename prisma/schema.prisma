@@ -123,15 +123,19 @@ model NewsImages {
 }
 
 model HallForm {
-  id                     Int       @id @default(autoincrement())
-  name                   String
-  reason                 String
-  mobileNumber           String
-  mobileNumberConfirmation String
-  date                   DateTime
-  hallId                 Int
+  id                        Int       @id @default(autoincrement())
+  name                      String
+  reason                    String
+  mobileNumber              String
+  mobileNumberConfirmation  String
+  date                      DateTime
+  hallId                    Int
+  paymentDetails            String?   // Optional field for payment details
 
-  createdAt              DateTime @default(now())
+  createdAt                 DateTime  @default(now())
+  modifiedAt                DateTime? @updatedAt  // Temporarily nullable
 
-  hall                   Halls     @relation("HallForms", fields: [hallId], references: [hall_id])
+  hall                      Halls     @relation("HallForms", fields: [hallId], references: [hall_id])
 }
+
+

@@ -10,10 +10,12 @@ import {
   SetMetadata,
   Query,
   BadRequestException,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { HallFormService } from './hallform.service';
 import { CreateHallFormDto } from './dto/create-hallform.dto';
 import { ConfirmReserveDto } from './dto/confirm-reserve.dto';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { OtpStoreService } from '../otp/otp-store.service';
 import { OtpService } from '../otp/otp.service'; // Import OtpService
 import { SessionAuthGuard } from 'src/auth/auth.guard';
@@ -201,5 +203,15 @@ export class HallFormController {
       date,
       formDetails, // Include the form details in the response
     };
+  }
+
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @SetMetadata('role', 'Admin')
+  @Patch(':id/payment')
+  async updatePaymentDetails(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updatePaymentDto: UpdatePaymentDto,
+  ) {
+    return this.hallFormService.updatePaymentDetails(id, updatePaymentDto);
   }
 }
