@@ -16,8 +16,8 @@ import { HallFormService } from './hallform.service';
 import { CreateHallFormDto } from './dto/create-hallform.dto';
 import { ConfirmReserveDto } from './dto/confirm-reserve.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
-import { OtpStoreService } from '../otp/otp-store.service';
-import { OtpService } from '../otp/otp.service'; // Import OtpService
+// import { OtpStoreService } from '../otp/otp-store.service';
+// import { OtpService } from '../otp/otp.service';
 import { SessionAuthGuard } from 'src/auth/auth.guard';
 import { RolesGuard } from 'src/auth/roles.guard';
 
@@ -25,55 +25,54 @@ import { RolesGuard } from 'src/auth/roles.guard';
 export class HallFormController {
   constructor(
     private readonly hallFormService: HallFormService,
-    private readonly otpStoreService: OtpStoreService,
-    private readonly otpService: OtpService, // Inject OtpService
+    // private readonly otpStoreService: OtpStoreService,
+    // private readonly otpService: OtpService,
   ) {}
+
   @Post()
   async submitHallForm(
     @Body() body: { mobileNumber: string; formDetails: CreateHallFormDto },
   ) {
     const { mobileNumber, formDetails } = body;
 
-    // Retrieve the OTP entry from the OTP store service
+    // 🔒 OTP validation disabled
+    /*
     const otpEntry = this.otpStoreService.getOtp(mobileNumber);
     this.otpStoreService.logStore();
-
-    // Check if the OTP entry exists and is verified
     if (!otpEntry || !otpEntry.isVerified) {
       throw new BadRequestException('Mobile number is not verified');
     }
+    */
 
-    // Generate a hall form entry and get the bookingId and date
     const { bookingId, date } =
       await this.hallFormService.createHallForm(formDetails);
 
-    // Notify the user with a reserve under review message
+    // 🔔 Notifications disabled
+    /*
     await this.otpService.sendReserveUnderReview({
       fullName: formDetails.name,
       purpose: formDetails.reason,
       mobileNumber: formDetails.mobileNumber,
       bookingDate: formDetails.date,
-      bookingId, // Pass formatted bookingId
+      bookingId,
     });
 
-    // Notify the admin about the reserve request
     await this.otpService.sendReserveRequest({
       fullName: formDetails.name,
       purpose: formDetails.reason,
       mobileNumber: formDetails.mobileNumber,
       bookingDate: formDetails.date,
-      bookingId, // Pass formatted bookingId
+      bookingId,
     });
 
-    // Delete the OTP entry from the OTP store
     this.otpStoreService.deleteOtp(mobileNumber);
+    */
 
-    // Return the response with the booking details and form details
     return {
       message: 'Hall form submitted successfully',
       bookingId,
       date,
-      formDetails, // Include the form details in the response
+      formDetails,
     };
   }
 
@@ -88,28 +87,28 @@ export class HallFormController {
       throw new BadRequestException('Date is required.');
     }
 
-    // Confirm the reservation in the database and get the response
     const { bookingId, hallForm } = await this.hallFormService.confirmReserve(
       hallFormId,
       date,
     );
 
-    // Send confirmation message to the user
+    // 🔔 Confirmation notification disabled
+    /*
     await this.otpService.sendReserveConfirmation({
       fullName: hallForm.name,
       purpose: hallForm.reason,
       mobileNumber: hallForm.mobileNumber,
       bookingDate: new Date(date),
-      bookingId, // Use the bookingId directly from the service response
+      bookingId,
     });
+    */
 
     return {
       message: 'Reservation confirmed successfully.',
-      bookingId, // Include the bookingId in the response
+      bookingId,
     };
   }
 
-  // Get all Hall forms (Admin access only)
   @UseGuards(SessionAuthGuard, RolesGuard)
   @SetMetadata('role', 'Admin')
   @Get()
@@ -117,7 +116,6 @@ export class HallFormController {
     return this.hallFormService.getAllHallForms();
   }
 
-  // Get Hall forms by parameters (Admin access only)
   @UseGuards(SessionAuthGuard, RolesGuard)
   @SetMetadata('role', 'Admin')
   @Get('filter')
@@ -133,7 +131,6 @@ export class HallFormController {
     return this.hallFormService.getHallFormsByParams(query);
   }
 
-  // Delete all Hall forms (Admin access only)
   @UseGuards(SessionAuthGuard, RolesGuard)
   @SetMetadata('role', 'Admin')
   @Delete()
@@ -141,7 +138,6 @@ export class HallFormController {
     return this.hallFormService.deleteAllHallForms();
   }
 
-  // Delete a specific Hall form by ID (Admin access only)
   @UseGuards(SessionAuthGuard, RolesGuard)
   @SetMetadata('role', 'Admin')
   @Delete(':id')
@@ -149,7 +145,6 @@ export class HallFormController {
     return this.hallFormService.deleteHallFormById(id);
   }
 
-  // Disable hall availability (Admin access only)
   @UseGuards(SessionAuthGuard, RolesGuard)
   @SetMetadata('role', 'Admin')
   @Post('disable')
@@ -170,7 +165,6 @@ export class HallFormController {
     );
   }
 
-  // Enable hall availability (Admin access only)
   @UseGuards(SessionAuthGuard, RolesGuard)
   @SetMetadata('role', 'Admin')
   @Post('enable')
@@ -192,16 +186,14 @@ export class HallFormController {
   ) {
     const { formDetails } = body;
 
-    // Generate a hall form entry and get the bookingId and date
     const { bookingId, date } =
       await this.hallFormService.createManualHallForm(formDetails);
 
-    // Return the response with the booking details and form details
     return {
       message: 'Hall form submitted successfully',
       bookingId,
       date,
-      formDetails, // Include the form details in the response
+      formDetails,
     };
   }
 
