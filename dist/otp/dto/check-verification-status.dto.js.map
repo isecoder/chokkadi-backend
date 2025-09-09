@@ -1,0 +1,1 @@
+{"version":3,"file":"check-verification-status.dto.js","sourceRoot":"","sources":["../../../src/otp/dto/check-verification-status.dto.ts"],"names":[],"mappings":";;;;;;;;;;;;AACA,qDAAgE;AAEhE,MAAa,0BAA0B;CAOtC;AAPD,gEAOC;AADC;IALC,IAAA,4BAAU,GAAE;IACZ,IAAA,0BAAQ,GAAE;IACV,IAAA,yBAAO,EAAC,cAAc,EAAE;QACvB,OAAO,EAAE,iEAAiE;KAC3E,CAAC;;gEACmB"}
